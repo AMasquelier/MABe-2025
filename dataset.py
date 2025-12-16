@@ -111,7 +111,7 @@ class MABeDataset(Dataset):
         self.arena_w = DF['arena_w'].tolist()
         self.arena_h = DF['arena_h'].tolist()
         self.arena_shape = DF['arena_shape'].tolist()
-        self.path = [tuple(x) for x in DF[['lab_id', 'video_id', 'mouse_1', 'mouse_2', 'chunk']].astype(str).values]
+        self.path = [tuple(x) for x in DF[['lab_id', 'video_id', 'mouse_1', 'mouse_2']].astype(str).values]
         self.avail_lbl = DF['behaviors_labeled'].tolist()
         self.is_train = is_train
 
@@ -128,8 +128,8 @@ class MABeDataset(Dataset):
     def load_track(self, params):
         path, fps, ppc = params
         mice = [str(int(float(x))) for x in path[2:4]]
-        X = np.load(self.PATH+f'train_processed/{'_'.join(path[:2])}_{'-'.join(mice)}_{path[-1]}.npy')
-        y = np.load(self.PATH+f'train_processed/{'_'.join(path[:2])}_{'-'.join(mice)}_{path[-1]}_labels.npy')
+        X = np.load(self.PATH+f'train_processed/{'_'.join(path[:2])}_{'-'.join(mice)}.npy')
+        y = np.load(self.PATH+f'train_processed/{'_'.join(path[:2])}_{'-'.join(mice)}_labels.npy')
         seq_len = self.config['seq_len']
 
         X = torch.tensor(X)
@@ -158,7 +158,7 @@ class MABeDataset(Dataset):
     def __getitem__(self, idx):
         path = self.path[idx]
         seq_len = self.config['seq_len']
-        m1,m2 = path[-3],path[-2]
+        m1,m2 = path[-2],path[-1]
 
         
         context = []
