@@ -9,6 +9,7 @@ import time
 import mlflow
 import hashlib
 import datetime
+import torchvision
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -34,7 +35,7 @@ CFG = {
 
 class Trainer:
     
-    def __init__(self, config={}, fold=0, epochs=16):
+    def __init__(self, config={}, epochs=16):
         self.config = CFG.copy()
         self.config.update(config)
 
@@ -51,7 +52,6 @@ class Trainer:
         self.mixup = Mixup()
 
         self.batch_size = self.config['batch_size']
-        self.fold = fold
 
                 
     def train_one_epoch(self, epoch=0):
@@ -143,7 +143,7 @@ class Trainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self.model.to(self.device)
         
-        self.train_loader, self.val_loader  = create_dataloaders(fold=self.fold, config=self.config)
+        self.train_loader, self.val_loader  = create_dataloaders(config=self.config)
         
         best = (np.inf,0,0)
 
@@ -151,8 +151,6 @@ class Trainer:
         
         for m in self.config['metrics']: metrics.append(m)
 
-        cols = ['id', 'epoch', 'train_loss', 'val_loss', 'lr', 'timestamp', 'fold']+['val_'+m.__name__ for m in metrics]+['val_word_'+m.__name__ for m in metrics]#+list([str(x) for x in self.config.keys()])
-        self.history = pd.DataFrame([], columns=cols).astype(object)
         
         Epochs = range(epochs)
         with mlflow.start_run(run_name=self.exp_id):
@@ -161,10 +159,7 @@ class Trainer:
                 set_seed(seed=self.config['seed']+epoch)
                 mlflow.log_params(self.config)
                 mlflow.log_params({"epochs":epochs, "model_id":self.exp_id})
-                # mlflow.log_artifact('tmp/model.py')
-                # mlflow.log_artifact('dataset.py')
-                # mlflow.log_artifact('modules.py')
-            
+                
                 train_loss = self.train_one_epoch(epoch=epoch)
                 
                 if not self.config['train_only']: 
@@ -180,8 +175,6 @@ class Trainer:
                     for v,m in zip(val_scores, self.config['metrics']):
                         mlflow.log_metric("val_"+m.__name__, v, step=epoch)
     
-                # self.history.loc[len(self.history), cols] = [self.exp_id, epoch, train_loss, val_loss, self.optimizer.param_groups[0]['lr'], str(datetime.datetime.now()), self.fold, *val_scores]#+[str(x) for x in self.config.values()]
-                # self.history.to_csv(f'history/{self.exp_id}.csv', index=False)
                 if checkpoint_freq=='epoch': torch.save(self.model.state_dict(), f"models/{self.exp_id}_{epoch}.pth")
 
                 if epoch%2==0:
@@ -204,6 +197,6 @@ class Trainer:
     
         if checkpoint_freq=='once': torch.save(self.model.state_dict(), f"models/{self.exp_id}.pth")
     
-        if Lab: Lab.add_model([self.exp_id, epochs, train_loss, val_loss, str(datetime.datetime.now()), self.fold, *val_scores], self.config)#+[repr(x) for x in self.config.values()], self.config)
+        if Lab: Lab.add_model([self.exp_id, epochs, train_loss, val_loss, str(datetime.datetime.now()), self.fold, *val_scores], self.config)
 
         return self.model

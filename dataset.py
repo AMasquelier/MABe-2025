@@ -5,13 +5,14 @@ import pandas as pd
 from tqdm import tqdm
 from IPython.display import clear_output
 from concurrent.futures import ThreadPoolExecutor
+from sklearn.model_selection import KFold
 
 import torch
 from torch.utils.data import Dataset, DataLoader
 
 class MABeDataset(Dataset):
     PATH = '../../Datasets/MABe-mouse-behavior-detection/'
-    config = {"split_size":.2, 'seq_len':1024, 'train_only':False}
+    config = {"split_size":.2, 'seq_len':1024, 'train_only':False, 'split_method':'split', 'fold':0}
 
     def process_condition(self, x):
         x = str(x)
@@ -62,7 +63,7 @@ class MABeDataset(Dataset):
         out[self.LABELS.index(x)]=1
         return out
 
-    def __init__(self, is_train=True, fold=0, config={}):     
+    def __init__(self, is_train=True, config={}):     
         self.config.update(config)
 
         df = pd.read_csv(self.PATH+'train.csv')
@@ -89,14 +90,20 @@ class MABeDataset(Dataset):
         
         IDX = np.unique(df.index.values)
         np.random.shuffle(IDX)
-
-        if self.config['train_only']:
-            idx = IDX.tolist()
+        
+        if self.config['train_only']: idx = IDX
+        elif self.config['split_method']=='k-fold':
+            skf = KFold(n_splits=int(1/self.config["split_size"]))
+            FOLDS = list(skf.split(IDX))
+            train_idx = IDX[FOLDS[self.config['fold']][0]].tolist()
+            val_idx = IDX[FOLDS[self.config['fold']][1]].tolist()
+            idx = train_idx if is_train else val_idx
         else:
             split_size = self.config['split_size']
             if is_train: idx = IDX[:int((1-split_size)*len(IDX))].tolist()
             else: idx = IDX[int((1-split_size)*len(IDX)):].tolist()
             np.random.shuffle(idx)
+        
 
         DF = df.loc[idx]
         self.fps = DF['frames_per_second'].tolist()
@@ -153,9 +160,6 @@ class MABeDataset(Dataset):
         seq_len = self.config['seq_len']
         m1,m2 = path[-3],path[-2]
 
-        #print(path)
-        #print(self.DF.iloc[idx]['arena_shape'], self.DF.iloc[idx]['arena_width_cm'], self.DF.iloc[idx]['arena_height_cm'], self.DF.iloc[idx]['video_height_pix'])
-
         
         context = []
         for f in self.FEATURES:
@@ -179,13 +183,6 @@ class MABeDataset(Dataset):
         
         x,y = self.TRACKS[path]
 
-        # factor = 0.85+0.3*np.random.randn()
-        # resize_x = torchvision.transforms.Resize((14, int(len(x)*factor)))
-        # resize_y = torchvision.transforms.Resize((1, int(len(x)*factor)))
-
-        #x = resize_x(x.unsqueeze(0))[0]
-        #y = resize_y(y.unsqueeze(0))[0]
-
         if len(x)>seq_len and self.is_train:
             a = y[:len(x)-seq_len].numpy().astype(float).sum(axis=-1)
             if a.sum()==0: a+=1
@@ -206,9 +203,9 @@ class MABeDataset(Dataset):
         )
 
 
-def create_dataloaders(config={'batch_size':32, 'num_workers':0}, fold=0):
-    train_dataset = MABeDataset(is_train=True, config=config, fold=fold)
-    val_dataset = MABeDataset(is_train=False, config=config, fold=fold)
+def create_dataloaders(config={'batch_size':32, 'num_workers':0}):
+    train_dataset = MABeDataset(is_train=True, config=config)
+    val_dataset = MABeDataset(is_train=False, config=config)
 
     torch.manual_seed(config['seed'])
     train_loader = DataLoader(

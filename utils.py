@@ -2,7 +2,7 @@ import os
 import torch
 import numpy as np
 
-def set_seed(seed=42):
+def set_seed(seed=2):
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
