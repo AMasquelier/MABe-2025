@@ -122,34 +122,7 @@ class Feature_Engineering(nn.Module):
 
         lead_1 = torch.einsum('...i,...i->...', dx1, rel_x) / (dx1.norm(dim=-1) * rel_x.norm(dim=-1) + 1e-6)
         lead_2 = torch.einsum('...i,...i->...', dx2, -rel_x) / (dx2.norm(dim=-1) * rel_x.norm(dim=-1) + 1e-6)
-        drel_x = rel_x.diff(dim=2, prepend=rel_x[:, :, :1])
-
         
-        tail_to_neck_1 = (x1[:, [6]] - x1[:, [4]])
-        neck_to_nose_1 = (x1[:, [4]] - x1[:, [5]])
-        tail_to_nose_1 = (x1[:, [6]] - x1[:, [5]])
-        head_angle_1 = torch.einsum('...i,...i->...', tail_to_neck_1, neck_to_nose_1) / (tail_to_neck_1.norm(dim=-1) * neck_to_nose_1.norm(dim=-1) + 1e-6)
-
-        tail_to_neck_2 = (x2[:, [6]] - x2[:, [4]])
-        neck_to_nose_2 = (x2[:, [4]] - x2[:, [5]])
-        tail_to_nose_2 = (x2[:, [6]] - x2[:, [5]])
-        head_angle_2 = torch.einsum('...i,...i->...', tail_to_neck_2, neck_to_nose_2) / (tail_to_neck_2.norm(dim=-1) * neck_to_nose_2.norm(dim=-1) + 1e-6)
-
-        ears_span_1 = (x1[:, [0]] - x1[:, [1]]).norm(dim=-1)
-        ears_span_2 = (x2[:, [0]] - x2[:, [1]]).norm(dim=-1)
-
-        len1 = (x1[:, -1] - x1[:, -2]).norm(dim=-1)
-        len2 = (x2[:, -1] - x2[:, -2]).norm(dim=-1)
-
-        # f_1 = torch.einsum('...i,...i->...', dx1, tail_to_nose_2) / (dx1.norm(dim=-1) * tail_to_nose_2.norm(dim=-1) + 1e-6)
-        # f_2 = torch.einsum('...i,...i->...', dx2, tail_to_nose_1) / (dx2.norm(dim=-1) * tail_to_nose_1.norm(dim=-1) + 1e-6)
-
-        # f_1 = f_1 * dx1_thresh
-        # f_2 = f_2 * dx2_thresh
-
-        # wh_ratio_1 = self.pdist(x1[:,[2]],x1[:,[3]])/self.pdist(x1[:,[5]],x1[:,[6]])
-        # wh_ratio_2 = self.pdist(x2[:,[2]],x2[:,[3]])/self.pdist(x2[:,[5]],x2[:,[6]])
-
         x = torch.concat([dx1_, dx2_, cross_prod_1, cross_prod_2, adx1, adx2, dirs, d, dd, lead_1, lead_2], dim=1)
         return x
 
@@ -168,14 +141,8 @@ class ARModel(nn.Module):
         n_channels = 7
         n_features = n_channels*(n_channels*2+9)
 
-        self.context_encoder = nn.Sequential(
-            nn.Linear(71, n_features),
-            nn.ReLU(),
-        )
-
+        
         base_h_dim = 128
-
-        # self.unet = UNet(n_features, base_h_dim)
 
         self.encoder = nn.Sequential(
             SEResConv(n_features, base_h_dim, 5, dilation=1, dropout=0.3),
