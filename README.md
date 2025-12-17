@@ -13,3 +13,16 @@ Then I created .npy files containing the coordinates of the 7 bodyparts I kept (
 
 
 # One model to predict them all
+For the sake of simplicity, the model should predict all the different behaviors at the same time and handle any lab and solo/social behaviors. 
+The features used are: 
+- Speed norm of mouse A and B
+- The cross product of the between the acceleration and the speed of mouse A and B
+- The cosine similarity between each frame of the speed of mouse A and B (capture the changes of direction between frames)
+- The cosine similarity between the speed of mouse A and B
+- The distance between each pair of bodyparts of mouse A and each pair of bodyparts of mouse B
+- The derivative of the distance
+- The cosine similarity between the speed and the difference of each mice's bodypart positions for mouse A and B
+NB: In the case of solo recording mouse A is the same as mouse B
+
+# Loss function
+The loss function is simply a Binary Cross Entropy function for each frame. The "behaviors labeled" column from "train.csv" is used to nullify the loss on behaviors that are not tracked, to not "punish" the model for predicting a behviour that may be correct but that was simply not annotated.
