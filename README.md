@@ -1,6 +1,6 @@
 # Context
 When I first started working on this competition, my goal was simply to get my hands on a type of problem that I never had the opportunity to work on: segmentation. My objective was to build a CNN model to at least reach the top 50% and beat those XGBoost public notebooks that got too popular to my taste.<br>
-Luckily I ended up at the 103rd place out of 1413 in the leaderboard (top 7%).<br>
+Luckily I ended up at the 103rd place out of 1413 in the leaderboard.<br>
 The things that I've learned by working on this competition were:
 - How to build segmentation models with CNNs
 - Simplicity is key
@@ -21,7 +21,8 @@ The features used are:
 - The cosine similarity between the speed of mouse A and B
 - The distance between each pair of bodyparts of mouse A and each pair of bodyparts of mouse B
 - The derivative of the distance
-- The cosine similarity between the speed and the difference of each mice's bodypart positions for mouse A and B
+- The cosine similarity between the speed and the difference of each mice's bodypart positions for mouse A and B<br>
+
 NB: In the case of solo recording mouse A is the same as mouse B
 
 # Loss function
